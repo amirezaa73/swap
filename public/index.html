@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Paraswap Simple Swap</title>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial; max-width: 600px; margin: 20px auto; padding: 20px; }
+    input, button { padding: 10px; margin: 5px; width: 95%; }
+    .box { border: 1px solid #ccc; padding: 20px; border-radius: 10px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Simple Paraswap</h1>
+    <input type="text" id="srcToken" placeholder="Source Token (0x...)" value="0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"><br>
+    <input type="text" id="destToken" placeholder="Dest Token (0x...)" value="0x6b175474e89094c44da98b954eedeac495271d0f"><br>
+    <input type="text" id="amount" placeholder="Amount (in wei)" value="10000000000000000"><br>
+    <button onclick="connectWallet()">Connect Wallet</button>
+    <button onclick="executeSwap()">Execute Swap</button>
+    <p id="status"></p>
+  </div>
+  <script>
+    let signer = null;
+    
+    async function connectWallet() {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          signer = provider.getSigner();
+          document.getElementById('status').textContent = "Connected: " + await signer.getAddress();
+        } catch (error) {
+          alert("Connection failed: " + error.message);
+        }
+      } else {
+        alert("Please install MetaMask!");
+      }
+    }
+
+    async function executeSwap() {
+      if (!signer) return alert("Connect wallet first!");
+      
+      const srcToken = document.getElementById('srcToken').value;
+      const destToken = document.getElementById('destToken').value;
+      const amount = document.getElementById('amount').value;
+
+      try {
+        // Step 1: Get Price
+        const priceUrl = `/api/paraswap?path=prices/&srcToken=${srcToken}&destToken=${destToken}&amount=${amount}&network=1&side=SELL`;
+        const priceRes = await fetch(priceUrl);
+        const priceData = await priceRes.json();
+
+        // Step 2: Build TX
+        const txUrl = '/api/paraswap?path=transactions/1&ignoreChecks=true';
+        const txRes = await fetch(txUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...priceData.priceRoute,
+            userAddress: await signer.getAddress(),
+            receiver: await signer.getAddress(),
+            slippage: 1,
+            deadline: Math.floor(Date.now()/1000) + 300
+          })
+        });
+        const txData = await txRes.json();
+
+        // Step 3: Send TX
+        const tx = {
+          to: txData.to,
+          data: txData.data,
+          value: txData.value,
+          gasPrice: txData.gasPrice,
+          gasLimit: txData.gas,
+        };
+
+        const txResponse = await signer.sendTransaction(tx);
+        document.getElementById('status').textContent = "TX Hash: " + txResponse.hash;
+        
+        await txResponse.wait();
+        document.getElementById('status').textContent += " - Confirmed!";
+
+      } catch (error) {
+        document.getElementById('status').textContent = "Error: " + error.message;
+      }
+    }
+  </script>
+  <script src="https://cdn.ethers.io/lib/ethers-5.6.umd.min.js"></script>
+</body>
+</html>
