@@ -7,6 +7,13 @@ export async function connectWallet() {
     }
 
     try {
+        // بررسی شبکه (اتریوم Mainnet)
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (chainId !== '0x1') {
+            alert("لطفاً شبکه خود را به اتریوم Mainnet تغییر دهید!");
+            return;
+        }
+
         await window.ethereum.request({ method: 'eth_requestAccounts' });
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         signer = provider.getSigner();
@@ -16,5 +23,4 @@ export async function connectWallet() {
     }
 }
 
-// رویداد کلیک برای دکمه اتصال
 document.getElementById('connectBtn').addEventListener('click', connectWallet);
