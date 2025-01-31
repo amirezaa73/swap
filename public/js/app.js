@@ -1,44 +1,41 @@
-import { signer } from './wallet.js';
-import { getPriceRoute, buildTransaction } from './paraswap.js';
-
-document.getElementById('swapBtn').addEventListener('click', executeSwap);
-
 async function executeSwap() {
-    if (!signer) {
-        alert("ابتدا کیف پول را وصل کنید!");
-        return;
-    }
+  try {
+    console.log("### مرحله ۱: دریافت مقادیر ###");
+    const srcToken = document.getElementById('srcToken').value;
+    const destToken = document.getElementById('destToken').value;
+    const amount = document.getElementById('amount').value;
 
-    try {
-        const srcToken = document.getElementById('srcToken').value;
-        const destToken = document.getElementById('destToken').value;
-        const amount = document.getElementById('amount').value;
+    console.log("### مرحله ۲: دریافت قیمت ###");
+    const priceData = await getPriceRoute(srcToken, destToken, amount);
+    if (!priceData.priceRoute) throw new Error("پاسخ قیمت نامعتبر است!");
 
-        // دریافت قیمت
-        const priceData = await getPriceRoute(srcToken, destToken, amount);
+    console.log("### مرحله ۳: ساخت تراکنش ###");
+    const txData = await buildTransaction(priceData.priceRoute);
+    console.log("txData:", txData);
 
-        // ساخت تراکنش
-        const txData = await buildTransaction(priceData.priceRoute);
+    console.log("### مرحله ۴: تنظیم Gas ###");
+    const gasPrice = ethers.utils.parseUnits("20", "gwei"); // 20 Gwei
+    const gasLimit = 300000;
 
-        // اعتبارسنجی آدرس
-        if (!ethers.utils.isAddress(txData.to)) {
-            throw new Error("آدرس مقصد نامعتبر است!");
-        }
+    console.log("### مرحله ۵: ارسال تراکنش ###");
+    const txResponse = await signer.sendTransaction({
+      to: txData.to,
+      data: txData.data,
+      value: txData.value,
+      gasPrice,
+      gasLimit,
+    });
 
-        // ارسال تراکنش
-        const txResponse = await signer.sendTransaction({
-            to: txData.to,
-            data: txData.data,
-            value: txData.value,
-            gasPrice: txData.gasPrice,
-            gasLimit: txData.gas,
-        });
+    console.log("TX Hash:", txResponse.hash);
+    document.getElementById('status').textContent = `هش تراکنش: ${txResponse.hash}`;
 
-        document.getElementById('status').textContent = "هش تراکنش: " + txResponse.hash;
-        await txResponse.wait();
-        document.getElementById('status').textContent += " - تایید شد!";
+    console.log("### مرحله ۶: انتظار برای تأیید ###");
+    const receipt = await txResponse.wait();
+    console.log("Receipt:", receipt);
+    document.getElementById('status').textContent += " - تایید شد!";
 
-    } catch (error) {
-        document.getElementById('status').textContent = "خطا: " + error.message;
-    }
+  } catch (error) {
+    console.error("خطای کامل:", error);
+    document.getElementById('status').textContent = `خطا: ${error.message}`;
+  }
 }
