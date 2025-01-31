@@ -1,4 +1,3 @@
-import { signer } from './wallet.js';
 import { getPriceRoute, buildTransaction } from './paraswap.js';
 
 document.getElementById('swapBtn').addEventListener('click', executeSwap);
