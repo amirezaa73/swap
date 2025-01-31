@@ -1,5 +1,3 @@
-import { signer } from './wallet.js';
-
 export async function getPriceRoute(srcToken, destToken, amount) {
     // شبکه آربیتروم (42161)
     const priceUrl = `/api/paraswap?path=prices/&srcToken=${srcToken}&destToken=${destToken}&amount=${amount}&network=42161&side=SELL`;
