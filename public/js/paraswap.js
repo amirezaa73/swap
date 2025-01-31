@@ -16,7 +16,7 @@ export async function buildTransaction(priceRoute) {
             ...priceRoute,
             userAddress: await signer.getAddress(),
             receiver: await signer.getAddress(),
-            slippage: 1,
+            slippage: 3, // افزایش slippage به ۳%
             deadline: Math.floor(Date.now() / 1000) + 300
         })
     });
