@@ -1,5 +1,3 @@
-export let signer = null;
-
 export async function connectWallet() {
     if (!window.ethereum) {
         alert("لطفاً متامسک را نصب کنید!");
@@ -7,10 +5,20 @@ export async function connectWallet() {
     }
 
     try {
-        // بررسی شبکه (اتریوم Mainnet)
+        // بررسی شبکه آربیتروم (ChainID = 42161)
         const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        if (chainId !== '0x1') {
-            alert("لطفاً شبکه خود را به اتریوم Mainnet تغییر دهید!");
+        if (chainId !== '0xA4B1') { // 0xA4B1 = 42161 در هگز
+            alert("لطفاً شبکه خود را به آربیتروم تغییر دهید!");
+            await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                    chainId: '0xA4B1',
+                    chainName: 'Arbitrum One',
+                    rpcUrls: ['https://arb1.arbitrum.io/rpc'],
+                    blockExplorerUrls: ['https://arbiscan.io/'],
+                    nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 }
+                }],
+            });
             return;
         }
 
@@ -22,5 +30,3 @@ export async function connectWallet() {
         alert("اتصال ناموفق: " + error.message);
     }
 }
-
-document.getElementById('connectBtn').addEventListener('click', connectWallet);
